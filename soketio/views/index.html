@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Page Title</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            margin: 0;
+        }
+        p {
+            margin: 0;
+        }
+        #messageDiv {
+            display: flex;
+            flex-direction: column;
+            margin: 10px;
+            flex-grow: 2;
+        }
+        .msgMe {
+            display: inline-block;
+            border-radius: 25px;
+            padding: 8px;
+            background-color: #0084FF;
+            color: white;
+            align-self: flex-end;
+            
+        }
+        .msgAn {
+            display: inline-block;
+            border-radius: 25px;
+            padding: 8px;
+            background-color: #F0F0F0;
+            color: black;
+            align-self: flex-start;
+        }
+        button {
+            border-radius: 25px;
+            padding: 8px;
+            border: none;
+            background-color: #0084FF;
+            color: white;
+            font-size: 16px;
+        }
+        input {
+            border-radius: 25px;
+            border: 4px solid #F0F0F0;
+            width: 50%;
+        }
+        .pseudo {
+            display: inline-block;
+            font-size: 12px;
+            color: #C4C4C4;
+            align-self: flex-start;
+        }
+        header {
+            background-color: #F8F8F8;
+            color: white;
+            position: fixed;
+            display: inline-block;
+            width: 100%;
+            height: 100px;
+            top: 0;
+            left: 0;
+        }
+        .pseudoHeader {
+            font-size: 16px;
+            color: black;
+        }
+        .headerPseudo {
+            display: flex;
+            flex-direction: row;
+            margin: 8px;
+        }
+        main {
+            margin-top: 110px;
+            margin-bottom: 110px;
+            display: flex;
+            flex-direction: row;
+        }
+        footer {
+            position: fixed;
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100px;;
+            bottom: 0;
+            left: 0;
+            border: 4px solid #F0F0F0;
+            background-color: white;
+            align-items: center;
+        }
+        .messageSend {
+            margin: 8px;
+            width: 100%;
+        }
+        ::placeholder{
+            text-align: center;
+            color: #C4C4C4;
+        }
+        .iconImage {
+            border-radius: 50%;
+        }
+        .iconImageMe {
+            border-radius: 50%;
+            display: flex;
+            margin-left: 10px;
+        }
+        .iconImageAn {
+            border-radius: 50%;
+            display: flex;
+            margin-right: 10px;
+        }
+        .pseudoIcon {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .me {
+            align-self: flex-end;
+            margin-left: 10px;
+        }
+        #sideNav {
+            margin: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .privateBtn {
+            margin: 4px;
+        }
+        .id {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="headerPseudo">
+            <p class="pseudoHeader">Pseudo : <span id="pseudonyme" class="pseudoHeader"></span></p>
+        </div>
+        <form action="javascript:void(0);">
+            <div>
+                <input type="text" id="pseudoInput" placeholder="Write your pseudo here.">
+            </div>
+            <div>
+                <input type="text" id="imgInput" placeholder="Copy and paste the url of the image">
+                <button id="submitBtnPseudo">Validate</button>
+            </div>            
+        </form>
+    </header>
+    <main>
+        <div id="messageDiv"></div>
+        <div id="sideNav"></div>
+    </main>
+    <footer>
+        <img id="iconImage" class="iconImage" src="https://parismatch.be/app/uploads/2018/04/Macaca_nigra_self-portrait_large-e1524567086123-1100x715.jpg" width="40px" height="40px">     
+        <form class="messageSend" action="javascript:void(0);">      
+            <input type="text" id="messageInput">
+            <button id="submitBtn">Send to all</button>
+        </form>
+    </footer>
+    <script src="/socket.io/socket.io.js"></script>
+    <script> 
+        var socket = io();
+        var messageDiv = document.getElementById('messageDiv');
+        var submitBtn = document.getElementById('submitBtn');
+        var messageInput = document.getElementById('messageInput');
+        var pseudoInput = document.getElementById('pseudoInput');
+        var submitBtnPseudo = document.getElementById('submitBtnPseudo');
+        var imgInput = document.getElementById('imgInput');
+        var sideNav = document.getElementById('sideNav');
+        var pseudo = "anonymous bonobo";
+        var img = "https://parismatch.be/app/uploads/2018/04/Macaca_nigra_self-portrait_large-e1524567086123-1100x715.jpg";
+
+        socket.emit('loaded', {pseudo : pseudo, img : img, connected: "yes"});
+        document.getElementById('pseudonyme').innerText = pseudo;
+
+        // Genrate private conv
+        function createPrivateChannel(user)
+        {
+            socket.emit('private', {id : user.id, pseudo : user.pseudo, img : user.img, msg : messageInput.value});
+        }
+
+        // lorsque l'on change nos informations
+        submitBtnPseudo.addEventListener('click', () =>
+        {
+            if (pseudoInput.value)
+            {
+                pseudo = pseudoInput.value;
+                document.getElementById('pseudonyme').innerText = pseudo;
+            }
+            if (imgInput.value)
+            {              
+            img = imgInput.value;
+            document.getElementById('iconImage').src = img;
+            }
+            socket.emit('loaded', {pseudo : pseudo, img : img, connected: "yes"});         
+        });
+
+        // Lorsque l'on envoie un message
+        submitBtn.addEventListener('click', () =>
+        {
+            socket.emit('message', {pseudo : pseudo, img : img, msg : messageInput.value});
+            messageInput.value = '';
+        });
+        // Lorsqu'un message est recus
+        socket.on('message', data =>
+        {
+            if(socket.id == data.id)
+            {
+                messageDiv.innerHTML += '<div class="pseudoIcon me">' + '<p class="msgMe">' + data.msg + '</p>' + '<img class="iconImageMe" src="' + data.img + '" width="20px" height="20px">' + '</div>';
+            } else
+            {
+                messageDiv.innerHTML +=  '<p class="pseudo">' + data.pseudo + '</p>' + '<div class="pseudoIcon">' + '<img class="iconImageAn" src="' + data.img + '" width="20px" height="20px">' + '<p class="msgAn">' + data.msg + '</p>' + '</div>';
+            }
+        });
+        
+        // Recois la liste des utilisateurs et leur info
+        socket.on('userlist', data =>
+        {
+            var content = '';
+            
+            sideNav.innerHTML = '<p>People:</p>'
+            console.log(data.users);
+            data.users.forEach(u =>
+            {
+                if (socket.id != u.id && u.connected == "yes")
+                {
+                    content = '<p>Send a message to: </p><div class ="pseudoIcon"><img class="iconImageAn" src="' + u.img + '" width="20px" height="20px"><p>' + u.pseudo + '</p></div><p class="id">#' + u.id + '</p>'
+                    let user = document.createElement("BUTTON");
+                    user.className = 'privateBtn';
+                    user.innerHTML = content;
+                    sideNav.appendChild(user);
+                    console.log(u);
+                    console.log(u.id);
+                    user.onclick = () => createPrivateChannel(u);
+                } 
+            });
+        });
+    </script>   
+</body>
+</html>
